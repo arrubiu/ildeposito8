@@ -1,0 +1,10 @@
+uuid: 6783468f-1dac-47c8-a408-8b1e0363440c
+langcode: en
+status: true
+dependencies:
+  module:
+    - user
+id: user.register
+label: Register
+targetEntityType: user
+cache: true

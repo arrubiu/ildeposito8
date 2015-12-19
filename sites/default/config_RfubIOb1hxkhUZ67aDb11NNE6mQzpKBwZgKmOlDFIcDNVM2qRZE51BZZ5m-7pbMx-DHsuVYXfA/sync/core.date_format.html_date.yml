@@ -1,0 +1,8 @@
+uuid: 6f7bdebd-ada2-44e6-8d06-6f466edb0cb2
+langcode: en
+status: true
+dependencies: {  }
+id: html_date
+label: 'HTML Date'
+locked: true
+pattern: Y-m-d

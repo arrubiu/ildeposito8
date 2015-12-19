@@ -1,0 +1,10 @@
+uuid: 90750c85-9033-4bbb-8100-cb28166d1b8f
+langcode: en
+status: true
+dependencies: {  }
+id: feedback
+label: 'Website feedback'
+recipients:
+  - sergio.durzu@gmail.com
+reply: ''
+weight: 0

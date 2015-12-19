@@ -1,3 +1,4 @@
-sites/default/*
+sites/default/files*
+sites/default/settings*
 
 .idea*

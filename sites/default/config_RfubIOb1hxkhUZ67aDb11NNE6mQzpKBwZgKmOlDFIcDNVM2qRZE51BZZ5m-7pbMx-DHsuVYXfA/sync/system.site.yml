@@ -1,0 +1,12 @@
+uuid: 5c315218-3b78-4adb-8d25-376bb449c738
+name: ilDeposito8
+mail: sergio.durzu@gmail.com
+slogan: 'Questo è lo slogan!'
+page:
+  403: ''
+  404: ''
+  front: /node
+admin_compact_mode: false
+weight_select_max: 100
+langcode: en
+default_langcode: en
