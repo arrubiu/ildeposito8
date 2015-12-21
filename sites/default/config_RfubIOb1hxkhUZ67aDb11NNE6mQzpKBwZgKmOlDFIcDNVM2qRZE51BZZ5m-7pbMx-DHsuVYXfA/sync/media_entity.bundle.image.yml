@@ -1,0 +1,14 @@
+uuid: 8b6b7d8e-4d66-4143-9401-1d45702e6d88
+langcode: en
+status: true
+dependencies:
+  module:
+    - media_entity_image
+id: image
+label: Image
+description: ''
+type: image
+type_configuration:
+  source_field: ''
+  gather_exif: '0'
+field_map: {  }
