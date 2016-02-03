@@ -8,11 +8,13 @@
 namespace Drupal\media_entity;
 
 use Drupal\Component\Plugin\PluginInspectionInterface;
+use Drupal\Component\Plugin\ConfigurablePluginInterface;
+use Drupal\Core\Plugin\PluginFormInterface;
 
 /**
  * Defines the interface for media types.
  */
-interface MediaTypeInterface extends PluginInspectionInterface {
+interface MediaTypeInterface extends PluginInspectionInterface, ConfigurablePluginInterface, PluginFormInterface {
 
   /**
    * Returns the display label.
@@ -42,17 +44,6 @@ interface MediaTypeInterface extends PluginInspectionInterface {
    *   Field value or FALSE if data unavailable.
    */
   public function getField(MediaInterface $media, $name);
-
-  /**
-   * Gets settings (sub) form for type plugin.
-   *
-   * @param MediaBundleInterface $bundle
-   *   Media bundle.
-   *
-   * @return mixed
-   *   Form structure. Form elements should reflect configuration schema.
-   */
-  public function settingsForm(MediaBundleInterface $bundle);
 
   /**
    * Attaches type-specific constraints to media.

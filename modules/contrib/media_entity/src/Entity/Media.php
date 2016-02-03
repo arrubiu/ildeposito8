@@ -24,6 +24,7 @@ use Drupal\Core\Entity\EntityChangedTrait;
  *   handlers = {
  *     "storage" = "Drupal\media_entity\MediaStorage",
  *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
+ *     "list_builder" = "Drupal\Core\Entity\EntityListBuilder",
  *     "access" = "Drupal\media_entity\MediaAccessController",
  *     "form" = {
  *       "default" = "Drupal\media_entity\MediaForm",
@@ -137,15 +138,7 @@ class Media extends ContentEntityBase implements MediaInterface {
    * {@inheritdoc}
    */
   public function getType() {
-    return $this->get('type')->value;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setType($type) {
-    $this->set('type', $type);
-    return $this;
+    return $this->bundle->entity->getType();
   }
 
   /**
@@ -154,18 +147,11 @@ class Media extends ContentEntityBase implements MediaInterface {
   public function preSave(EntityStorageInterface $storage) {
     parent::preSave($storage);
 
-    // If no owner has been set explicitly, make the current user the owner.
-    if (!$this->getPublisher()) {
-      $this->setPublisherId(\Drupal::currentUser()->id());
-    }
     // If no revision author has been set explicitly, make the media owner the
     // revision author.
     if (!$this->get('revision_uid')->entity) {
       $this->set('revision_uid', $this->getPublisherId());
     }
-
-    /** @var \Drupal\media_entity\MediaBundleInterface $bundle */
-    $bundle = $this->entityManager()->getStorage('media_bundle')->load($this->bundle());
 
     // Set thumbnail.
     if (!$this->get('thumbnail')->entity) {
@@ -174,11 +160,11 @@ class Media extends ContentEntityBase implements MediaInterface {
 
     // Try to set fields provided by type plugin and mapped in bundle
     // configuration.
-    foreach ($bundle->field_map as $source_field => $destination_field) {
+    foreach ($this->bundle->entity->field_map as $source_field => $destination_field) {
       // Only save value in entity field if empty. Do not overwrite existing data.
       // @TODO We might modify that in the future but let's leave it like this
       // for now.
-      if ($this->hasField($destination_field) && $this->{$destination_field}->isEmpty() && ($value = $bundle->getType()->getField($this, $source_field))) {
+      if ($this->hasField($destination_field) && $this->{$destination_field}->isEmpty() && ($value = $this->getType()->getField($this, $source_field))) {
         $this->set($destination_field, $value);
       }
     }
@@ -190,9 +176,8 @@ class Media extends ContentEntityBase implements MediaInterface {
    */
   public function automaticallySetThumbnail() {
     /** @var \Drupal\media_entity\MediaBundleInterface $bundle */
-    $bundle = $this->entityManager()->getStorage('media_bundle')->load($this->bundle());
 
-    $thumbnail_uri = $bundle->getType()->thumbnail($this);
+    $thumbnail_uri = $this->getType()->thumbnail($this);
 
     $existing = \Drupal::entityQuery('file')
       ->condition('uri', $thumbnail_uri)
@@ -234,12 +219,7 @@ class Media extends ContentEntityBase implements MediaInterface {
    * {@inheritdoc}
    */
   public function validate() {
-    /** @var \Drupal\media_entity\MediaBundleInterface $bundle */
-    $bundle = $this->bundle->entity;
-    if ($type = $bundle->getType()) {
-      $type->attachConstraints($this);
-    }
-
+    $this->getType()->attachConstraints($this);
     return parent::validate();
   }
 
@@ -314,7 +294,7 @@ class Media extends ContentEntityBase implements MediaInterface {
       ->setLabel(t('Publisher ID'))
       ->setDescription(t('The user ID of the media publisher.'))
       ->setRevisionable(TRUE)
-      ->setDefaultValue(0)
+      ->setDefaultValueCallback('Drupal\media_entity\Entity\Media::getCurrentUserId')
       ->setSetting('target_type', 'user')
       ->setTranslatable(TRUE)
       ->setDisplayOptions('view', array(
@@ -364,14 +344,6 @@ class Media extends ContentEntityBase implements MediaInterface {
       ->setTranslatable(TRUE)
       ->setRevisionable(TRUE);
 
-    $fields['type'] = BaseFieldDefinition::create('string')
-      ->setLabel(t('Type'))
-      ->setDescription(t('The type of this media.'))
-      ->setRequired(TRUE)
-      ->setSetting('max_length', 255)
-      ->setRevisionable(TRUE)
-      ->setTranslatable(TRUE);
-
     $fields['revision_timestamp'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Revision timestamp'))
       ->setDescription(t('The time that the current revision was created.'))
@@ -392,6 +364,18 @@ class Media extends ContentEntityBase implements MediaInterface {
       ->setTranslatable(TRUE);
 
     return $fields;
+  }
+
+  /**
+   * Default value callback for 'uid' base field definition.
+   *
+   * @see ::baseFieldDefinitions()
+   *
+   * @return array
+   *   An array of default values.
+   */
+  public static function getCurrentUserId() {
+    return array(\Drupal::currentUser()->id());
   }
 
 }

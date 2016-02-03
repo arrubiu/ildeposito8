@@ -9,13 +9,14 @@ namespace Drupal\media_entity_image\Plugin\MediaEntity\Type;
 
 use Drupal\Core\Config\Config;
 use Drupal\Core\Datetime\DrupalDateTime;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\media_entity\MediaBundleInterface;
 use Drupal\media_entity\MediaInterface;
 use Drupal\media_entity\MediaTypeBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Provides media type plugin for Image.
@@ -51,15 +52,17 @@ class Image extends MediaTypeBase {
    *   The plugin_id for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
-   *   Entity manager service.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   Entity type manager service.
+   * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
+   *   Entity field manager service.
    * @param \Drupal\Core\Image\ImageFactory $image_factory
    *   The image factory.
    * @param \Drupal\Core\Config\Config $config
    *   Media entity config object.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityManager $entity_manager, ImageFactory $image_factory, Config $config) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_manager, $config);
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, EntityFieldManagerInterface $entity_field_manager, ImageFactory $image_factory, Config $config) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $entity_field_manager, $config);
     $this->imageFactory = $image_factory;
   }
 
@@ -71,7 +74,8 @@ class Image extends MediaTypeBase {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity.manager'),
+      $container->get('entity_type.manager'),
+      $container->get('entity_field.manager'),
       $container->get('image.factory'),
       $container->get('config.factory')->get('media_entity.settings')
     );
@@ -109,7 +113,7 @@ class Image extends MediaTypeBase {
 
     // Get the file, image and exif data.
     /** @var \Drupal\file\FileInterface $file */
-    $file = $this->entityManager->getStorage('file')->load($media->{$source_field}->first()->{$property_name});
+    $file = $this->entityTypeManager->getStorage('file')->load($media->{$source_field}->first()->{$property_name});
     $image = $this->imageFactory->get($file->getFileUri());
     $uri = $file->getFileUri();
 
@@ -160,36 +164,36 @@ class Image extends MediaTypeBase {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(MediaBundleInterface $bundle) {
-    $form = array();
-
-    $options = array();
-    $allowed_field_types = array('file', 'image');
-    foreach ($this->entityManager->getFieldDefinitions('media', $bundle->id()) as $field_name => $field) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
+    /** @var MediaBundleInterface $bundle */
+    $bundle = $form_state->getFormObject()->getEntity();
+    $options = [];
+    $allowed_field_types = ['file', 'image'];
+    foreach ($this->entityFieldManager->getFieldDefinitions('media', $bundle->id()) as $field_name => $field) {
       if (in_array($field->getType(), $allowed_field_types) && !$field->getFieldStorageDefinition()->isBaseField()) {
         $options[$field_name] = $field->getLabel();
       }
     }
 
-    $form['source_field'] = array(
+    $form['source_field'] = [
       '#type' => 'select',
       '#title' => t('Field with source information'),
       '#description' => t('Field on media entity that stores Image file. You can create a bundle without selecting a value for this dropdown initially. This dropdown can be populated after adding fields to the bundle.'),
       '#default_value' => empty($this->configuration['source_field']) ? NULL : $this->configuration['source_field'],
       '#options' => $options,
-    );
+    ];
 
-    $form['gather_exif'] = array(
+    $form['gather_exif'] = [
       '#type' => 'select',
       '#title' => t('Whether to gather exif data.'),
       '#description' => t('Gather exif data using exif_read_data().'),
       '#default_value' => empty($this->configuration['gather_exif']) || !function_exists('exif_read_data') ? 0 : $this->configuration['gather_exif'],
-      '#options' => array(
+      '#options' => [
         0 => t('No'),
         1 => t('Yes'),
-      ),
+      ],
       '#disabled' => (function_exists('exif_read_data')) ? FALSE : TRUE,
-    );
+    ];
 
     return $form;
   }
@@ -201,7 +205,7 @@ class Image extends MediaTypeBase {
     $source_field = $this->configuration['source_field'];
 
     /** @var \Drupal\file\FileInterface $file */
-    $file = $this->entityManager->getStorage('file')->load($media->{$source_field}->target_id);
+    $file = $this->entityTypeManager->getStorage('file')->load($media->{$source_field}->target_id);
 
     if (!$file) {
       return $this->config->get('icon_base') . '/image.png';

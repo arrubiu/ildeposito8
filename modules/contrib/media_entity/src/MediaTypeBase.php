@@ -9,10 +9,13 @@ namespace Drupal\media_entity;
 
 use Drupal\Component\Plugin\PluginBase;
 use Drupal\Core\Config\Config;
-use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Component\Utility\NestedArray;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Form\FormStateInterface;
 
 
 /**
@@ -29,11 +32,18 @@ abstract class MediaTypeBase extends PluginBase implements MediaTypeInterface, C
   protected $label;
 
   /**
-   * The entity manager object.
+   * The entity type manager service.
    *
-   * @var \Drupal\Core\Entity\EntityManager;
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface;
    */
-  protected $entityManager;
+  protected $entityTypeManager;
+
+  /**
+   * The entity field manager service.
+   *
+   * @var \Drupal\Core\Entity\EntityFieldManagerInterface;
+   */
+  protected $entityFieldManager;
 
   /**
    * Media entity image config object.
@@ -51,15 +61,19 @@ abstract class MediaTypeBase extends PluginBase implements MediaTypeInterface, C
    *   The plugin_id for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Entity\EntityManager $entity_manager
-   *   Entity manager service.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   Entity type manager service.
+   * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
+   *   Entity field manager service.
    * @param \Drupal\Core\Config\Config $config
    *   Media entity config object.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityManager $entity_manager, Config $config) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, EntityFieldManagerInterface $entity_field_manager, Config $config) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->entityManager = $entity_manager;
+    $this->entityTypeManager = $entity_type_manager;
+    $this->entityFieldManager = $entity_field_manager;
     $this->config = $config;
+    $this->setConfiguration($configuration);
   }
 
   /**
@@ -70,9 +84,34 @@ abstract class MediaTypeBase extends PluginBase implements MediaTypeInterface, C
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity.manager'),
+      $container->get('entity_type.manager'),
+      $container->get('entity_field.manager'),
       $container->get('config.factory')->get('media_entity.settings')
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setConfiguration(array $configuration) {
+    $this->configuration = NestedArray::mergeDeep(
+      $this->defaultConfiguration(),
+      $configuration
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getConfiguration() {
+    return $this->configuration;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function defaultConfiguration() {
+    return [];
   }
 
   /**
@@ -86,4 +125,28 @@ abstract class MediaTypeBase extends PluginBase implements MediaTypeInterface, C
    * {@inheritdoc}
    */
   public function attachConstraints(MediaInterface $media) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies() {
+    return [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
+    return [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) { }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function submitConfigurationForm(array &$form, FormStateInterface $form_state) { }
 }

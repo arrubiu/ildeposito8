@@ -5,8 +5,8 @@ description: Shows differences between content revisions.
 # version: VERSION
 configure: diff.general_settings
 
-# Information added by Drupal.org packaging script on 2015-12-15
+# Information added by Drupal.org packaging script on 2016-01-13
 version: '8.x-1.x-dev'
 core: '8.x'
 project: 'diff'
-datestamp: 1450215863
+datestamp: 1452725655
